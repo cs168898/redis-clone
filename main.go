@@ -3,8 +3,6 @@ package main
 import (
 	"bufio"
 	"fmt"
-	"io"
-	"net"
 	"os"
 	"strconv"
 	"strings"
