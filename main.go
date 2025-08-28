@@ -6,32 +6,7 @@ import (
 )
 
 func main(){
-	// // declare the input
-	// input := "$5\r\nAhmed\r\n"
-
-	// reader := bufio.NewReader(strings.NewReader(input))
-
-	// // reading the data type ( by reading the first byte in the buffer )
-	// b, _ := reader.ReadByte()
-
-	// if b != '$'{
-	// 	fmt.Println("Invalid type, expecting bulk strings only which should contain '$'")
-	// 	os.Exit(1)
-	// }
-
-	// // read and parse the size into an integer
-	// size, _ := reader.ReadByte()
 	
-	// strSize, _ := strconv.ParseInt(string(size), 10, 64)
-
-	// // just remove the \r\n
-	// reader.ReadByte()
-	// reader.ReadByte()
-
-	// name := make([]byte, strSize)
-	// reader.Read(name)
-
-	// fmt.Println(string(name))
 	fmt.Println("Listening on port :6379")
 
 	// start a TCP listener for Client to communicate with it
@@ -59,10 +34,10 @@ func main(){
 			return
 		}
 
-		fmt.Println(value)
+		_ = value
 
-		// ignore request and send back a PONG
-		conn.Write([]byte("+OK\r\n"))
+		writer := NewWriter(conn)
+		writer.Write(Value{typ: "string", str: "OK"})
 	}
 
 }
