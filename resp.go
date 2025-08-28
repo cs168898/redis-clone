@@ -7,6 +7,16 @@ import (
 	"strconv"
 )
 
+/*
+
+example RESP formats:
+
+$5\r\nAhmed\r\n
+
+*2\r\n$5\r\nhello\r\n$5\r\nworld\r\n
+
+*/
+
 const (
 	STRING	= '+'
 	ERROR	= '-'
@@ -137,6 +147,9 @@ func (r *Resp) readArray() (Value, error){
 
 The read bulk function is to read the bulk of strings that are inside 
 the array.
+
+A bulk string contains prefixes such as '$' and then the integer
+on the length of the string, which is then terminated with \r\n 
 
 */
 
