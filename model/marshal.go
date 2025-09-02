@@ -1,39 +1,43 @@
-package main
+package model
 
-import "strconv"
+import (
+	"fmt"
+	"strconv"
+	constant "redis-clone/const"
+)
 
 /*
-
 The marshal function will convert the Value data type into a RESP
 (Redis Serialization Protocal) byte-based format. This is called
 serialization.
-
 */
 func (v Value) Marshal() []byte {
-	switch v.typ {
-	case "array":
+	switch v.Typ {
+	case "Array":
 		return v.marshalArray()
-	case "bulk":
+	case "Bulk":
 		return v.marshalBulk()
-	case "string":
+	case "String":
 		return v.marshalString()
-	case "null":
+	case "Null":
 		return v.marshalNull()
-	case "error":
+	case "Error":
 		return v.marshalError()
 	default:
-		return []byte{}
+		// this prevents the client from getting stuck as
+		// it was silently failing
+		return marshalUnknown(v.Typ)
 	}
 }
 
 func (v Value) marshalString() []byte {
 	var bytes []byte
-	bytes = append(bytes, STRING)
+	bytes = append(bytes, constant.STRING)
 	// the ... is a spread operator that breaks down a slice
 	// in this case, since in golang , a string is a read-only
 	// slice of bytes, it works too.
-	// it then passes in all the bytes as arguments into append 
-	bytes = append(bytes, v.str...)
+	// it then passes in all the bytes as arguments into append
+	bytes = append(bytes, v.Str...)
 	bytes = append(bytes, '\r', '\n')
 
 	return bytes
@@ -41,14 +45,14 @@ func (v Value) marshalString() []byte {
 
 func (v Value) marshalBulk() []byte {
 	var bytes []byte
-	bytes = append(bytes, BULK)
+	bytes = append(bytes, constant.BULK)
 	// Itoa (Integer to ASCII) is the function to convert an
 	// integer to ASCII format, and with the spread operator,
 	// the integer 12 for example , gets converted into 2 bytes
 	// '1' and '2'.
-	bytes = append(bytes, strconv.Itoa(len(v.bulk))...)
+	bytes = append(bytes, strconv.Itoa(len(v.Bulk))...)
 	bytes = append(bytes, '\r', '\n')
-	bytes = append(bytes, v.bulk...)
+	bytes = append(bytes, v.Bulk...)
 	bytes = append(bytes, '\r', '\n')
 
 	return bytes
@@ -57,15 +61,15 @@ func (v Value) marshalBulk() []byte {
 func (v Value) marshalArray() []byte {
 	var bytes []byte
 	// get the length of the array
-	len := len(v.array)
-	bytes = append(bytes, ARRAY)
+	len := len(v.Array)
+	bytes = append(bytes, constant.ARRAY)
 	bytes = append(bytes, strconv.Itoa(len)...)
 	bytes = append(bytes, '\r', '\n')
 
-	for i:= 0 ; i < len; i++ {
+	for i := 0; i < len; i++ {
 		// recursion call on the marshal method
-		// so we append every 
-		bytes = append(bytes, v.array[i].Marshal()...)
+		// so we append every
+		bytes = append(bytes, v.Array[i].Marshal()...)
 	}
 
 	return bytes
@@ -73,16 +77,28 @@ func (v Value) marshalArray() []byte {
 
 func (v Value) marshalError() []byte {
 	var bytes []byte
-	bytes = append(bytes, ERROR)
+	bytes = append(bytes, constant.ERROR)
 	// include the error string
-	bytes = append(bytes, v.str...)
+	bytes = append(bytes, v.Str...)
 	bytes = append(bytes, '\r', '\n')
 
 	return bytes
 }
 
 func (v Value) marshalNull() []byte {
-	// we return an invalid length for the bulk ($) string '-1' 
+	// we return an invalid length for the bulk ($) string '-1'
 	// then terminate the line with '\r\n'
 	return []byte("$-1\r\n")
+}
+
+// marshalUnknown is a helper function to create a RESP error message
+// for an unknown type.
+func marshalUnknown(unknownType string) []byte {
+	// We use fmt.Sprintf to format the error message.
+	errMsg := fmt.Sprintf("ERR unknown type '%s'", unknownType)
+	var bytes []byte
+	bytes = append(bytes, constant.ERROR)
+	bytes = append(bytes, errMsg...)
+	bytes = append(bytes, '\r', '\n')
+	return bytes
 }
