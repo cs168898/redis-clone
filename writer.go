@@ -1,6 +1,9 @@
 package main
 
-import "io"
+import (
+	model "redis-clone/model"
+	"io"
+)
 
 type Writer struct {
 	writer io.Writer
@@ -14,7 +17,7 @@ func NewWriter(w io.Writer) *Writer {
 	return &Writer{writer: w}
 }
 
-func (w *Writer) Write(v Value) error {
+func (w *Writer) Write(v model.Value) error {
 	var bytes = v.Marshal()
 
 	// the write method returns the number of bytes return and the error
