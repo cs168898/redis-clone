@@ -7,6 +7,8 @@ import (
 	"strings"
 
 	model "redis-clone/model"
+	aof "redis-clone/aof"
+	resp "redis-clone/resp"
 )
 
 func main() {
@@ -19,7 +21,33 @@ func main() {
 		fmt.Println(err)
 		return
 	}
+
+	f, err := aof.NewAof("data")
+	if err != nil {
+		fmt.Println(err)
+		return
+	}
+	defer f.Close()
+
+	// we read the AOF file here to build the in-memory database
+	// this should happen before the server starts accepting new connections
+	f.Read(func(value model.Value) {
+			command := strings.ToUpper(value.Array[0].Bulk) // first item is the command
+			args := value.Array[1:] // first item onwards is the arguments
+
+			handler, ok := Handlers[command]
+			if !ok{
+				fmt.Println("Invalid command: ", command)
+				return
+			}
+
+			// use the appointed handler for the arguments
+			handler(args)
+
+		})
+
 	for {
+		
 		// start receiving requests
 		conn, err := l.Accept()
 		if err != nil {
@@ -28,22 +56,22 @@ func main() {
 		}
 
 		// the go keyword allows new clients to connect concurrently
-		go handleConnection(conn)
+		go handleConnection(conn, f)
 	}
 
 }
 
 // this function handles a single client connection
-func handleConnection(conn net.Conn) {
+func handleConnection(conn net.Conn, f *aof.Aof) {
 	defer conn.Close()
 
 	writer := NewWriter(conn)
 
-	resp := NewResp(conn)
+	resp := resp.NewResp(conn)
 
 	// create an infinite loop to receive commands from clients and respond to them
 	for {
-
+		  
 		value, err := resp.Read()
 		if err != nil {
 			if err != io.EOF {
@@ -84,7 +112,11 @@ func handleConnection(conn net.Conn) {
 			writer.Write(model.Value{Typ: "string", Str: ""})
 			continue
 		}
-
+		
+		// during SET and HSET we have to write the value
+		if command == "SET" || command == "HSET"{
+			f.Write(value) 
+		}
 		result := handler(args)
 
 		writer.Write(result)

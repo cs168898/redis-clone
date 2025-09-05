@@ -13,6 +13,5 @@ Building the Redis in-memory database to gain a deeper understanding of Redis te
 5. ```HGET  [hash] [key] ```        -> Returns Value, typically used to obtain values inside nested hashmaps.
 6. ```HGETALL [hash]```             -> Returns Value, typically used to list ALL key and values inside a specific hash.
 
-## main.go
-This file starts the connection to listen on port 6379 and receives requests from users to execute commands based on handlers then write back to the user using the write method defined in the ```writer.go``` file.
+
 
