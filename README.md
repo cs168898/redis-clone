@@ -1,6 +1,6 @@
 
 # redis-clone (WORK IN PROGRESS)
-Building the Redis in-memory database with distrubuted caching to gain a deeper understanding of Redis technology and distrubuted systems.
+Building the Redis in-memory database with distributed caching to gain a deeper understanding of Redis technology and distributed systems.
 
 ## How to start
 1. In an terminal, type ```go run .```, this will start the net/http server to listen to requests and accept commands.
@@ -15,5 +15,5 @@ Building the Redis in-memory database with distrubuted caching to gain a deeper 
 6. ```HGETALL [hash]```             -> Returns Value, typically used to list ALL key and values inside a specific hash.
 
 # Currently Developing
-1. Distrubuted Caching
+1. Distributed Caching
 
