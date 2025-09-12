@@ -191,11 +191,12 @@ func snapshotMap(args []model.Value) model.Value {
 	defer SETsMu.RUnlock()
 
 	// create a slice of maps then pass it into the Snapshot function
-	var maps []any
-	maps = append(maps, SETs)
-	maps = append(maps, HSETs)
+	
 
-	snapshot.Snapshot(maps, fileName)
+	err := snapshot.SaveSnapshot(SETs, HSETs, fileName)
+	if err != nil{
+		return model.Value{Typ: "String", Str: err.Error()}
+	}
 
 	msg := fmt.Sprintf("Successfully saved %v", fileName)
 	fmt.Println("snapshotMap function ended")

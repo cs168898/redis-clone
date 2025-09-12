@@ -1,0 +1,12 @@
+{
+	"sets": {
+		"user": "sam",
+		"user1": "sam",
+		"user2": "ahmed"
+	},
+	"hsets": {
+		"test": {
+			"u1": "sam"
+		}
+	}
+}
