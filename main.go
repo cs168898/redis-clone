@@ -7,6 +7,7 @@ import (
 	"strings"
 
 	aof "redis-clone/aof"
+	"redis-clone/database"
 	model "redis-clone/model"
 	resp "redis-clone/resp"
 )
@@ -29,6 +30,12 @@ func main() {
 	}
 	defer f.Close()
 
+	// create the db instance
+	db := &database.Database{
+		Sets: make(map[string]string),
+		Hset: make(map[string]map[string]string),
+	}
+
 	// we read the AOF file here to build the in-memory database
 	// this should happen before the server starts accepting new connections
 	f.Read(func(value model.Value) {
@@ -42,7 +49,7 @@ func main() {
 		}
 
 		// use the appointed handler for the arguments
-		handler(args)
+		handler(args, db)
 
 	})
 
@@ -56,13 +63,13 @@ func main() {
 		}
 
 		// the go keyword allows new clients to connect concurrently
-		go handleConnection(conn, f)
+		go handleConnection(conn, f, db)
 	}
 
 }
 
 // this function handles a single client connection
-func handleConnection(conn net.Conn, f *aof.Aof) {
+func handleConnection(conn net.Conn, f *aof.Aof, db *database.Database) {
 	defer conn.Close()
 
 	writer := NewWriter(conn)
@@ -117,7 +124,7 @@ func handleConnection(conn net.Conn, f *aof.Aof) {
 		if command == "SET" || command == "HSET" {
 			f.Write(value)
 		}
-		result := handler(args)
+		result := handler(args, db)
 
 		writer.Write(result)
 	}

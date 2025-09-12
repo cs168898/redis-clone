@@ -2,13 +2,13 @@ package main
 
 import (
 	"fmt"
-	"sync"
 
+	"redis-clone/database"
 	model "redis-clone/model"
 	"redis-clone/snapshot"
 )
 
-var Handlers = map[string]func([]model.Value) model.Value{
+var Handlers = map[string]func([]model.Value, *database.Database) model.Value{
 	"PING":     ping,
 	"SET":      set,
 	"GET":      get,
@@ -19,7 +19,7 @@ var Handlers = map[string]func([]model.Value) model.Value{
 }
 
 // return a PONG whenever user types a command PING
-func ping(args []model.Value) model.Value {
+func ping(args []model.Value, db *database.Database) model.Value {
 	if len(args) == 0 {
 		return model.Value{Typ: "String", Str: "PONG"}
 	}
@@ -28,10 +28,7 @@ func ping(args []model.Value) model.Value {
 	return model.Value{Typ: "String", Str: args[0].Bulk}
 }
 
-var SETs = map[string]string{}
-var SETsMu = sync.RWMutex{}
-
-func set(args []model.Value) model.Value {
+func set(args []model.Value, db *database.Database) model.Value {
 	if len(args) != 2 {
 		return model.Value{Typ: "Error", Str: "invalid number of args"}
 	}
@@ -55,34 +52,34 @@ func set(args []model.Value) model.Value {
 
 	// now that we have the key and model.Value pair,
 	// we need to lock read write because of concurrency
-	SETsMu.Lock()
+	db.Mu.Lock()
 
 	// set the key model.Value pair
-	SETs[key] = value
+	db.Sets[key] = value
 
 	// unlock the read write
-	SETsMu.Unlock()
+	db.Mu.Unlock()
 
 	return model.Value{Typ: "String", Str: "OK"}
 }
 
-func get(args []model.Value) model.Value {
+func get(args []model.Value, db *database.Database) model.Value {
 	if len(args) != 1 {
 		return model.Value{Typ: "Error", Str: "invalid number of args"}
 	}
 
 	key := args[0].Bulk
 
-	SETsMu.RLock()
+	db.Mu.RLock()
 
-	value, ok := SETs[key]
+	value, ok := db.Sets[key]
 	if !ok {
 		fmt.Println("Could not find model.Value in map with key: ", key)
-		SETsMu.RUnlock()
+		db.Mu.RUnlock()
 		return model.Value{Typ: "Null", Str: "No such key"}
 	}
 
-	SETsMu.RUnlock()
+	db.Mu.RUnlock()
 
 	return model.Value{Typ: "Bulk", Bulk: value}
 
@@ -101,12 +98,8 @@ hget users u1
 hset posts u1
 
 */
-// create a map of maps as HSET uses nested maps to
-// set and keep data
-var HSETs = map[string]map[string]string{}
-var HSETsMU = sync.RWMutex{}
 
-func hset(args []model.Value) model.Value {
+func hset(args []model.Value, db *database.Database) model.Value {
 	if len(args) != 3 {
 		return model.Value{Typ: "Error", Str: "ERR wrong number of argument for HSET command"}
 	}
@@ -117,23 +110,23 @@ func hset(args []model.Value) model.Value {
 	value := args[2].Bulk
 
 	// lock bfeore setting the map for concurrency
-	HSETsMU.Lock()
+	db.Mu.Lock()
 
 	// check if the hash have a model.Value in the map already
 	// if it doesnt, create one
-	if _, ok := HSETs[hash]; !ok {
-		HSETs[hash] = map[string]string{}
+	if _, ok := db.Hset[hash]; !ok {
+		db.Hset[hash] = map[string]string{}
 	}
 	// assign the model.Value to the hash
-	HSETs[hash][key] = value
+	db.Hset[hash][key] = value
 
 	// always unlock after done
-	HSETsMU.Unlock()
+	db.Mu.Unlock()
 
 	return model.Value{Typ: "String", Str: "OK"}
 }
 
-func hget(args []model.Value) model.Value {
+func hget(args []model.Value, db *database.Database) model.Value {
 	if len(args) != 2 {
 		return model.Value{Typ: "Error", Str: "ERR wrong number of argument"}
 	}
@@ -141,9 +134,9 @@ func hget(args []model.Value) model.Value {
 	hash := args[0].Bulk
 	key := args[1].Bulk
 
-	HSETsMU.RLock()
-	value, ok := HSETs[hash][key]
-	HSETsMU.RUnlock()
+	db.Mu.RLock()
+	value, ok := db.Hset[hash][key]
+	db.Mu.RUnlock()
 
 	if !ok {
 		return model.Value{Typ: "Null"}
@@ -153,20 +146,20 @@ func hget(args []model.Value) model.Value {
 
 }
 
-func hgetall(args []model.Value) model.Value {
+func hgetall(args []model.Value, db *database.Database) model.Value {
 	if len(args) != 1 {
 		return model.Value{Typ: "String", Str: "Error wrong number of arguments"}
 	}
 
-	if len(HSETs) == 0 {
+	if len(db.Hset) == 0 {
 		return model.Value{Typ: "String", Str: "There is no users set"}
 	}
 
 	hash := args[0].Bulk
 
-	HSETsMU.RLock()
+	db.Mu.RLock()
 
-	hashMap := HSETs[hash]
+	hashMap := db.Hset[hash]
 
 	//create a slice with the length of the hashmap * 2 since we are storing both key and model.Value
 	slice := make([]model.Value, 0, len(hashMap)*2)
@@ -178,23 +171,22 @@ func hgetall(args []model.Value) model.Value {
 		slice = append(slice, model.Value{Typ: "Bulk", Bulk: value})
 	}
 
-	HSETsMU.RUnlock()
+	db.Mu.RUnlock()
 
 	return model.Value{Typ: "Array", Array: slice}
 }
 
 // screenshot [fileName]
-func snapshotMap(args []model.Value) model.Value {
+func snapshotMap(args []model.Value, db *database.Database) model.Value {
 	fmt.Println("snapshotMap function started")
 	fileName := args[0].Bulk // first item in the args variable should be the name of the file
-	SETsMu.RLock()
-	defer SETsMu.RUnlock()
+	db.Mu.RLock()
+	defer db.Mu.RUnlock()
 
 	// create a slice of maps then pass it into the Snapshot function
-	
 
-	err := snapshot.SaveSnapshot(SETs, HSETs, fileName)
-	if err != nil{
+	err := snapshot.SaveSnapshot(db.Sets, db.Hset, fileName)
+	if err != nil {
 		return model.Value{Typ: "String", Str: err.Error()}
 	}
 
