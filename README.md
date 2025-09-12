@@ -13,8 +13,9 @@ Building the Redis in-memory database with distributed caching to gain a deeper 
 4. ```HSET  [hash] [key] [value]``` -> Returns OK, typically used to set nested hashmap values. Data type: map[string]map[string]string.
 5. ```HGET  [hash] [key] ```        -> Returns Value, typically used to obtain values inside nested hashmaps.
 6. ```HGETALL [hash]```             -> Returns Value, typically used to list ALL key and values inside a specific hash.
-7. ```snapshot [fileName]```        -> Saves the current data into a data persistent storage in a file [fileName]_[setName], this is used as a backup of current data or quick restoration after database restart (not implemented yet).
+7. ```snapshot [fileName]```        -> Saves the current data into a data persistent storage in a file named [filename], this is used as a backup of current data or quick restoration(not implemented yet) after database restart.
 
 # Currently Developing
 1. Distributed Caching
+2. Quick restoration
 
