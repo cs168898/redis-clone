@@ -5,6 +5,7 @@ import (
 	"io"
 	"net"
 	"strings"
+	"time"
 
 	aof "redis-clone/aof"
 	"redis-clone/database"
@@ -35,6 +36,9 @@ func main() {
 		Sets: make(map[string]string),
 		Hset: make(map[string]map[string]string),
 	}
+
+	// call the auto backup function that runs in the background
+	database.StartAutoBackup(db, 5*time.Second) // automatically backup once every 5 seconds
 
 	// we read the AOF file here to build the in-memory database
 	// this should happen before the server starts accepting new connections
