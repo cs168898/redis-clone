@@ -5,15 +5,17 @@ import (
 	"sync"
 
 	model "redis-clone/model"
+	"redis-clone/snapshot"
 )
 
 var Handlers = map[string]func([]model.Value) model.Value{
-	"PING":    ping,
-	"SET":     set,
-	"GET":     get,
-	"HSET":    hset,
-	"HGET":    hget,
-	"HGETALL": hgetall,
+	"PING":     ping,
+	"SET":      set,
+	"GET":      get,
+	"HSET":     hset,
+	"HGET":     hget,
+	"HGETALL":  hgetall,
+	"SNAPSHOT": snapshotMap,
 }
 
 // return a PONG whenever user types a command PING
@@ -76,7 +78,8 @@ func get(args []model.Value) model.Value {
 	value, ok := SETs[key]
 	if !ok {
 		fmt.Println("Could not find model.Value in map with key: ", key)
-		return model.Value{Typ: "Null"}
+		SETsMu.RUnlock()
+		return model.Value{Typ: "Null", Str: "No such key"}
 	}
 
 	SETsMu.RUnlock()
@@ -178,4 +181,23 @@ func hgetall(args []model.Value) model.Value {
 	HSETsMU.RUnlock()
 
 	return model.Value{Typ: "Array", Array: slice}
+}
+
+// screenshot [fileName]
+func snapshotMap(args []model.Value) model.Value {
+	fmt.Println("snapshotMap function started")
+	fileName := args[0].Bulk // first item in the args variable should be the name of the file
+	SETsMu.RLock()
+	defer SETsMu.RUnlock()
+
+	// create a slice of maps then pass it into the Snapshot function
+	var maps []any
+	maps = append(maps, SETs)
+	maps = append(maps, HSETs)
+
+	snapshot.Snapshot(maps, fileName)
+
+	msg := fmt.Sprintf("Successfully saved %v", fileName)
+	fmt.Println("snapshotMap function ended")
+	return model.Value{Typ: "String", Str: msg}
 }

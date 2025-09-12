@@ -6,8 +6,8 @@ import (
 	"net"
 	"strings"
 
-	model "redis-clone/model"
 	aof "redis-clone/aof"
+	model "redis-clone/model"
 	resp "redis-clone/resp"
 )
 
@@ -32,22 +32,22 @@ func main() {
 	// we read the AOF file here to build the in-memory database
 	// this should happen before the server starts accepting new connections
 	f.Read(func(value model.Value) {
-			command := strings.ToUpper(value.Array[0].Bulk) // first item is the command
-			args := value.Array[1:] // first item onwards is the arguments
+		command := strings.ToUpper(value.Array[0].Bulk) // first item is the command
+		args := value.Array[1:]                         // first item onwards is the arguments
 
-			handler, ok := Handlers[command]
-			if !ok{
-				fmt.Println("Invalid command: ", command)
-				return
-			}
+		handler, ok := Handlers[command]
+		if !ok {
+			fmt.Println("Invalid command: ", command)
+			return
+		}
 
-			// use the appointed handler for the arguments
-			handler(args)
+		// use the appointed handler for the arguments
+		handler(args)
 
-		})
+	})
 
 	for {
-		
+
 		// start receiving requests
 		conn, err := l.Accept()
 		if err != nil {
@@ -71,7 +71,7 @@ func handleConnection(conn net.Conn, f *aof.Aof) {
 
 	// create an infinite loop to receive commands from clients and respond to them
 	for {
-		  
+
 		value, err := resp.Read()
 		if err != nil {
 			if err != io.EOF {
@@ -84,12 +84,12 @@ func handleConnection(conn net.Conn, f *aof.Aof) {
 		// Perform some checks to ensure that the passed args are valid
 
 		if value.Typ != "Array" {
-			writer.Write(model.Value{Typ: "error", Str: "invalid request, expected an Array"})
+			writer.Write(model.Value{Typ: "Error", Str: "invalid request, expected an Array"})
 			continue
 		}
 
 		if len(value.Array) == 0 {
-			writer.Write(model.Value{Typ: "error", Str: "invalid request, expected Array length > 0"})
+			writer.Write(model.Value{Typ: "Error", Str: "invalid request, expected Array length > 0"})
 			continue
 		}
 
@@ -109,13 +109,13 @@ func handleConnection(conn net.Conn, f *aof.Aof) {
 		if !ok {
 			// if the key is not found
 			fmt.Println("Invalid command: ", command)
-			writer.Write(model.Value{Typ: "string", Str: ""})
+			writer.Write(model.Value{Typ: "String", Str: ""})
 			continue
 		}
-		
+
 		// during SET and HSET we have to write the value
-		if command == "SET" || command == "HSET"{
-			f.Write(value) 
+		if command == "SET" || command == "HSET" {
+			f.Write(value)
 		}
 		result := handler(args)
 

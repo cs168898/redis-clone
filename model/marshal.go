@@ -66,7 +66,7 @@ func (v Value) marshalArray() []byte {
 	bytes = append(bytes, strconv.Itoa(len)...)
 	bytes = append(bytes, '\r', '\n')
 
-	for i := 0; i < len; i++ {
+	for i := range len {
 		// recursion call on the marshal method
 		// so we append every
 		bytes = append(bytes, v.Array[i].Marshal()...)
