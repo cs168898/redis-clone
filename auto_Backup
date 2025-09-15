@@ -2,13 +2,17 @@
 	"sets": {
 		"user": "sam",
 		"user2": "sam2",
-		"user3": "sam3"
+		"user3": "sam3",
+		"user4": "sam4",
+		"user5": "sam5"
 	},
 	"hsets": {
 		"user": {
 			"u1": "sam",
 			"u2": "ahmed",
-			"u3": "sam2"
+			"u3": "sam2",
+			"u4": "sam4",
+			"u5": "sam5"
 		}
 	}
 }

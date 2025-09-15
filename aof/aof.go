@@ -30,7 +30,7 @@ func NewAof(path string) (*Aof, error) {
 						THIRD DIGIT is the permission for all other users.
 						6 is the same as the other 2 digits.
 	*/
-	f, err := os.OpenFile(path, os.O_CREATE|os.O_RDWR, 0666) // f is a *os.File object
+	f, err := os.OpenFile(path, os.O_CREATE|os.O_RDWR|os.O_APPEND, 0666) // f is a *os.File object
 	if err != nil {
 		return nil, err
 	}
