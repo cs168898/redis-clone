@@ -11,6 +11,7 @@ import (
 	"redis-clone/database"
 	model "redis-clone/model"
 	resp "redis-clone/resp"
+	"redis-clone/snapshot"
 )
 
 func main() {
@@ -37,25 +38,37 @@ func main() {
 		Hset: make(map[string]map[string]string),
 	}
 
+	fileName := "auto_Backups"
+	// populate the cached database with the backup'ed snapshot
+	err = snapshot.LoadSnapshot(db.Sets, db.Hset, fileName)
+	if err != nil {
+		// if there is an error we will manually build from the AOF log files
+		// we read the AOF file here to build the in-memory database
+		// this should happen before the server starts accepting new connections
+		f.Read(func(value model.Value) {
+			fmt.Println("Manually reading from AOF file")
+			if value.Typ != "Array" || len(value.Array) == 0 {
+				fmt.Println("Skipping malformed command from AOF file.")
+				return
+			}
+			command := strings.ToUpper(value.Array[0].Bulk) // first item is the command
+			args := value.Array[1:]                         // first item onwards is the arguments
+
+			handler, ok := Handlers[command]
+			if !ok {
+				fmt.Println("Invalid command: ", command)
+				return
+			}
+
+			// use the appointed handler for the arguments
+			handler(args, db)
+
+		})
+
+	}
+
 	// call the auto backup function that runs in the background
-	database.StartAutoBackup(db, 5*time.Second) // automatically backup once every 5 seconds
-
-	// we read the AOF file here to build the in-memory database
-	// this should happen before the server starts accepting new connections
-	f.Read(func(value model.Value) {
-		command := strings.ToUpper(value.Array[0].Bulk) // first item is the command
-		args := value.Array[1:]                         // first item onwards is the arguments
-
-		handler, ok := Handlers[command]
-		if !ok {
-			fmt.Println("Invalid command: ", command)
-			return
-		}
-
-		// use the appointed handler for the arguments
-		handler(args, db)
-
-	})
+	database.StartAutoBackup(db, 30*time.Second) // automatically backup once every 5 seconds
 
 	for {
 
