@@ -1,12 +1,12 @@
 {
 	"sets": {
-		"user": "sam",
+		"user": "test",
 		"user1": "sam",
 		"user2": "ahmed"
 	},
 	"hsets": {
 		"test": {
-			"u1": "sam"
+			"u1": "lmao"
 		}
 	}
 }
