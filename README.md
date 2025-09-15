@@ -31,5 +31,5 @@ Building the Redis in-memory database with distributed caching to gain a deeper 
 
 # Currently Developing
 1. Distributed Caching
-2. Quick restoration
+~~2. Quick restoration~~
 
