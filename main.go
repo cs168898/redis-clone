@@ -38,7 +38,7 @@ func main() {
 		Hset: make(map[string]map[string]string),
 	}
 
-	fileName := "auto_Backups"
+	fileName := "auto_Backup"
 	// populate the cached database with the backup'ed snapshot
 	err = snapshot.LoadSnapshot(db.Sets, db.Hset, fileName)
 	if err != nil {
